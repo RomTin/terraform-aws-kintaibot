@@ -60,7 +60,7 @@ class WorkingStateMachine:
             State.WORKING.name: list(),
             State.BREAK.name: list(),
             State.AFK.name: list()
-        }
+        } # work, break, afkのタイムスタンプを [start, end, start, end...] の順で連続して保持する
         self.timecard_body = list()
         try:
             self.timecard_body = self.timecard_obj.get()['Body']
@@ -72,7 +72,7 @@ class WorkingStateMachine:
                 line = line.split(', ')
                 self.total_time[line[4]].append(line[8])
                 current_status = line[7] # latest state
-        if len(self.total_time[State.WORKING.name]) % 2:
+        if len(self.total_time[State.WORKING.name]) % 2: # [start, end, ..., start] の場合に、endを今のタイムスタンプで補完する
             self.total_time[State.WORKING.name].append(self.timestamp)
         if len(self.total_time[State.BREAK.name]) % 2:
             self.total_time[State.BREAK.name].append(self.timestamp)
@@ -102,7 +102,7 @@ class WorkingStateMachine:
         return True
 
     def before_end(self):
-        self.__previous_state = self.state
+        self.__previous_state = self.state # タイムカードに記録するためにSTMの遷移前の状態を一時保存する
         return True
 
     def after_end(self):
@@ -124,20 +124,20 @@ class WorkingStateMachine:
         [h, m, s] = [int(t) for t in str(timedelta(seconds=int(seconds))).split(':')]
         return f"{str(h) + '時間' if h != 0 else ''}{str(m) + '分' if m != 0 else ''}{s}秒"
 
-    def get_total_time(self, total_time):
+    def get_total_time(self, time_name):
         t = 0
         index = 0
-        while(index < len(total_time)):
-            l = int(total_time[index])
-            r = int(total_time[index + 1])
+        while(index < len(self.total_time[time_name])):
+            l = int(self.total_time[time_name][index])
+            r = int(self.total_time[time_name][index + 1])
             t += r - l
             index += 2
         return t
 
     def get_summary(self):
-        total_work = self.get_total_time(self.total_time[State.WORKING.name])
-        break_time = self.get_total_time(self.total_time[State.BREAK.name])
-        afk_time = self.get_total_time(self.total_time[State.AFK.name])
+        total_work = self.get_total_time(State.WORKING.name)
+        break_time = self.get_total_time(State.BREAK.name)
+        afk_time = self.get_total_time(State.AFK.name)
         total_work -= (break_time + afk_time)
         return f"""\
 勤務時間: {WorkingStateMachine.convert_time(total_work)}
@@ -180,4 +180,7 @@ def handle(event, context):
     except Exception as e:
         return { 'statusCode': 200, 'body': json.dumps({'text': choice(ILLEGAL_ACTION_TEXT) }) }
     else:
-        return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] + ("\n```" + timecard.get_summary() + "```\n```" + timecard.get_csv() + "```" if timecard.state == State.HOME.name else "")}) }
+        return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] +\
+        (f"""
+```{timecard.get_summary()}```
+```{timecard.get_csv()}```""" if timecard.state == State.HOME.name else "")}) }
