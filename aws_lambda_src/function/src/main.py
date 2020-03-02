@@ -16,7 +16,7 @@ USER_ID = "${user_id}"
 DESTINATIONS = ${destinations}
 BUCKET_NAME = "${bucket_name}"
 
-REGEX = re.compile(".*(${work_start_words}).*|.*(${remote_work_start_words}).*|.*(${work_end_words}).*|.*(${recover_words}).*|.*(${break_start_words}).*|.*(${afk_start_words}).*|.*(${broadcast_words}).*")
+REGEX = re.compile(".*(${work_start_words}).*|.*(${remote_work_start_words}).*|.*(${work_end_words}).*|.*(${recover_words}).*|.*(${break_start_words}).*|.*(${afk_start_words}).*|.*(${broadcast_words}).*|.*(${cancel_words}).*")
 BROADCAST_REGEX = re.compile(".*`(.*)`.*")
 CONFIGS = {
     'WORK_START': "${work_start_text}",
@@ -25,7 +25,8 @@ CONFIGS = {
     'RECOVER': "${recover_text}",
     'BREAK_START': "${break_start_text}",
     'AFK_START': "${afk_start_text}",
-    'BROADCAST': "${broadcast_text}"
+    'BROADCAST': "${broadcast_text}",
+    'CANCEL': "${cancel_text}",
 }
 RESPONSES = {
     'WORK_START': "${work_start_res}",
@@ -34,7 +35,7 @@ RESPONSES = {
     'RECOVER': "${recover_res}",
     'BREAK_START': "${break_start_res}",
     'AFK_START': "${afk_start_res}",
-    'BROADCAST': "${broadcast_res}"
+    'CANCEL': "${cancel_res}",
 }
 UNDEFINED_ACTION_TEXT = ${undef_action_text}
 ILLEGAL_ACTION_TEXT = ${illegal_action_text}
@@ -48,6 +49,7 @@ class StateTransitions(Enum):
     BREAK_START = 4
     AFK_START = 5
     BROADCAST = 6
+    CANCEL = 7
 
 class State(Enum):
     HOME = 0
@@ -128,6 +130,11 @@ class WorkingStateMachine:
         self.timecard_obj.put(Body=('\n').join(self.timecard_body).encode())
         return True
 
+    def rollback(self):
+        self.timecard_body = self.timecard_body[:-1]
+        self.timecard_obj.put(Body=('\n').join(self.timecard_body).encode())
+        return True
+
     def convert_time(seconds):
         [h, m, s] = [int(t) for t in str(timedelta(seconds=int(seconds))).split(':')]
         return f"{str(h) + '時間' if h != 0 else ''}{str(m) + '分' if m != 0 else ''}{s}秒"
@@ -177,7 +184,7 @@ def handle(event, context):
     try:
         g = REGEX.match(text).groups()
         method = next(StateTransitions(index) for index, m in enumerate(g) if m is not None)
-    except Exception as e:
+    except:
         return { 'statusCode': 200, 'body': json.dumps({'text': choice(UNDEFINED_ACTION_TEXT) }) }
 
     timecard = WorkingStateMachine(timestamp)
@@ -186,7 +193,13 @@ def handle(event, context):
         timecard.broadcast(CONFIGS[method.name])
         return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] +\
             (f"\n```{timecard.get_summary()}```\n```{timecard.get_csv()}```" if timecard.state == State.HOME.name else "") }) }
-    except Exception as e:
+    except:
+        if method.name == StateTransitions.CANCEL.name:
+            try:
+                timecard.rollback()
+                return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] }) }
+            except:
+                pass
         try:
             g = BROADCAST_REGEX.match(text).groups()
             timecard.broadcast(g[0])

@@ -29,6 +29,9 @@ data "template_file" "bot-source" {
     broadcast_words         = join("|", var.broadcast_words)
     broadcast_text          = var.broadcast_text
     broadcast_res           = var.broadcast_res
+    cancel_words            = join("|", var.cancel_words)
+    cancel_text             = var.cancel_text
+    cancel_res              = var.cancel_res
     undef_action_text       = jsonencode(var.undef_action_text)
     different_user          = jsonencode(var.different_user)
     illegal_action_text     = jsonencode(var.illegal_action_text)

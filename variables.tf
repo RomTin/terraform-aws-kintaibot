@@ -166,3 +166,22 @@ variable "broadcast_res" {
   type        = string
   description = "ブロードキャストのレスポンス"
 }
+
+/* ====================
+設定（キャンセル）
+==================== */
+
+variable "cancel_words" {
+  type        = list
+  description = "キャンセルのトリガーワード"
+}
+
+variable "cancel_text" {
+  type        = string
+  description = "キャンセルの報告文面"
+}
+
+variable "cancel_res" {
+  type        = string
+  description = "キャンセルのレスポンス"
+}

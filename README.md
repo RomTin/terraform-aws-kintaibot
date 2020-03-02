@@ -28,6 +28,9 @@ $ terraform apply --var-file=./main.tfvars
 | broadcast\_res | ブロードキャストのレスポンス | `string` | n/a | yes |
 | broadcast\_text | ブロードキャストの報告文面 | `string` | n/a | yes |
 | broadcast\_words | ブロードキャストのトリガーワード | `list` | n/a | yes |
+| cancel\_res | キャンセルのレスポンス | `string` | n/a | yes |
+| cancel\_text | キャンセルの報告文面 | `string` | n/a | yes |
+| cancel\_words | キャンセルのトリガーワード | `list` | n/a | yes |
 | destinations | 勤怠連絡の報告先Slackチャンネル | `list` | n/a | yes |
 | different\_user | 許可されていないユーザーからのコマンドのレスポンス | `list` | n/a | yes |
 | id | リソースが一意になるように付与する任意の文字列 | `string` | n/a | yes |
