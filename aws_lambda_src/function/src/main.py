@@ -206,6 +206,7 @@ def handle(event, context):
         if method.name == StateTransitions.CANCEL.name:
             try:
                 timecard.rollback()
+                timecard.broadcast(CONFIGS[method.name])
                 return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] }) }
             except:
                 pass
