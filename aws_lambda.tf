@@ -4,28 +4,34 @@ Lambda function
 data "template_file" "bot-source" {
   template = file("${path.module}/aws_lambda_src/function/src/main.py")
   vars = {
-    slack_token         = var.slack_token
-    user_id             = var.user_id
-    destinations        = jsonencode(var.destinations)
-    bucket_name         = aws_s3_bucket.timecards.bucket
-    work_start_words    = join("|", var.work_start_words)
-    work_start_text     = var.work_start_text
-    work_start_res      = var.work_start_res
-    work_end_words      = join("|", var.work_end_words)
-    work_end_text       = var.work_end_text
-    work_end_res        = var.work_end_res
-    break_start_words   = join("|", var.break_start_words)
-    break_start_text    = var.break_start_text
-    break_start_res     = var.break_start_res
-    afk_start_words     = join("|", var.afk_start_words)
-    afk_start_text      = var.afk_start_text
-    afk_start_res       = var.afk_start_res
-    recover_words       = join("|", var.recover_words)
-    recover_text        = var.recover_text
-    recover_res         = var.recover_res
-    undef_action_text   = jsonencode(var.undef_action_text)
-    different_user      = jsonencode(var.different_user)
-    illegal_action_text = jsonencode(var.illegal_action_text)
+    slack_token             = var.slack_token
+    user_id                 = var.user_id
+    destinations            = jsonencode(var.destinations)
+    bucket_name             = aws_s3_bucket.timecards.bucket
+    work_start_words        = join("|", var.work_start_words)
+    work_start_text         = var.work_start_text
+    work_start_res          = var.work_start_res
+    remote_work_start_words = join("|", var.remote_work_start_words)
+    remote_work_start_text  = var.remote_work_start_text
+    remote_work_start_res   = var.remote_work_start_res
+    work_end_words          = join("|", var.work_end_words)
+    work_end_text           = var.work_end_text
+    work_end_res            = var.work_end_res
+    break_start_words       = join("|", var.break_start_words)
+    break_start_text        = var.break_start_text
+    break_start_res         = var.break_start_res
+    afk_start_words         = join("|", var.afk_start_words)
+    afk_start_text          = var.afk_start_text
+    afk_start_res           = var.afk_start_res
+    recover_words           = join("|", var.recover_words)
+    recover_text            = var.recover_text
+    recover_res             = var.recover_res
+    broadcast_words         = join("|", var.broadcast_words)
+    broadcast_text          = var.broadcast_text
+    broadcast_res           = var.broadcast_res
+    undef_action_text       = jsonencode(var.undef_action_text)
+    different_user          = jsonencode(var.different_user)
+    illegal_action_text     = jsonencode(var.illegal_action_text)
   }
 }
 

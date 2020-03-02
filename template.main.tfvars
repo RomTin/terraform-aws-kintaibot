@@ -11,6 +11,9 @@
 //work_start_words = []
 //work_start_text = ""
 //work_start_res   = ""
+//remote_work_start_words = []
+//remote_work_start_text  = ""
+//remote_work_start_res   = ""
 //work_end_words = []
 //work_end_text = ""
 //work_end_res     = ""
@@ -26,3 +29,7 @@
 //recover_words  = []
 //recover_text = ""
 //recover_res   = ""
+///* 設定（ブロードキャスト）*/
+//broadcast_words = []
+//broadcast_text  = "" #バッククォートで囲まれた入力文字列がブロードキャストされる。
+//broadcast_res   = ""

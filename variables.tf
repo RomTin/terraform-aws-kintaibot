@@ -61,6 +61,21 @@ variable "work_start_res" {
   description = "勤怠開始のレスポンス"
 }
 
+variable "remote_work_start_words" {
+  type        = list
+  description = "在宅勤怠開始のトリガーワード"
+}
+
+variable "remote_work_start_text" {
+  type        = string
+  description = "在宅勤怠開始の報告文面"
+}
+
+variable "remote_work_start_res" {
+  type        = string
+  description = "在宅勤怠開始のレスポンス"
+}
+
 variable "work_end_words" {
   type        = list
   description = "勤怠終了のトリガーワード"
@@ -131,4 +146,23 @@ variable "recover_text" {
 variable "recover_res" {
   type        = string
   description = "復帰のレスポンス"
+}
+
+/* ====================
+設定（ブロードキャスト）
+==================== */
+
+variable "broadcast_words" {
+  type        = list
+  description = "ブロードキャストのトリガーワード"
+}
+
+variable "broadcast_text" {
+  type        = string
+  description = "ブロードキャストの報告文面"
+}
+
+variable "broadcast_res" {
+  type        = string
+  description = "ブロードキャストのレスポンス"
 }

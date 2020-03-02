@@ -16,20 +16,25 @@ USER_ID = "${user_id}"
 DESTINATIONS = ${destinations}
 BUCKET_NAME = "${bucket_name}"
 
-REGEX = re.compile(".*(${work_start_words}).*|.*(${work_end_words}).*|.*(${recover_words}).*|.*(${break_start_words}).*|.*(${afk_start_words}).*")
+REGEX = re.compile(".*(${work_start_words}).*|.*(${remote_work_start_words}).*|.*(${work_end_words}).*|.*(${recover_words}).*|.*(${break_start_words}).*|.*(${afk_start_words}).*|.*(${broadcast_words}).*")
+BROADCAST_REGEX = re.compile(".*`(.*)`.*")
 CONFIGS = {
     'WORK_START': "${work_start_text}",
+    'REMOTE_WORK_START': "${remote_work_start_text}",
     'WORK_END': "${work_end_text}",
     'RECOVER': "${recover_text}",
     'BREAK_START': "${break_start_text}",
-    'AFK_START': "${afk_start_text}"
+    'AFK_START': "${afk_start_text}",
+    'BROADCAST': "${broadcast_text}"
 }
 RESPONSES = {
     'WORK_START': "${work_start_res}",
+    'REMOTE_WORK_START': "${remote_work_start_res}",
     'WORK_END': "${work_end_res}",
     'RECOVER': "${recover_res}",
     'BREAK_START': "${break_start_res}",
-    'AFK_START': "${afk_start_res}"
+    'AFK_START': "${afk_start_res}",
+    'BROADCAST': "${broadcast_res}"
 }
 UNDEFINED_ACTION_TEXT = ${undef_action_text}
 ILLEGAL_ACTION_TEXT = ${illegal_action_text}
@@ -37,10 +42,12 @@ DIFFERENT_USER_TEXT = ${different_user}
 
 class StateTransitions(Enum):
     WORK_START = 0
-    WORK_END = 1
-    RECOVER = 2
-    BREAK_START = 3
-    AFK_START = 4
+    REMOTE_WORK_START = 1
+    WORK_END = 2
+    RECOVER = 3
+    BREAK_START = 4
+    AFK_START = 5
+    BROADCAST = 6
 
 class State(Enum):
     HOME = 0
@@ -79,12 +86,13 @@ class WorkingStateMachine:
         if len(self.total_time[State.AFK.name]) % 2:
             self.total_time[State.AFK.name].append(self.timestamp)
         self.machine = Machine(model=self, states=WorkingStateMachine.states, initial=current_status, auto_transitions=False)
-        self.machine.add_transition(trigger=StateTransitions.WORK_START.name,  source=State.HOME.name,    dest=State.WORKING.name, after='start')
-        self.machine.add_transition(trigger=StateTransitions.WORK_END.name,    source=State.WORKING.name, dest=State.HOME.name,    before='before_end', after='after_end')
-        self.machine.add_transition(trigger=StateTransitions.BREAK_START.name, source=State.WORKING.name, dest=State.BREAK.name,   after='start')
-        self.machine.add_transition(trigger=StateTransitions.RECOVER.name,     source=State.BREAK.name,   dest=State.WORKING.name, before='before_end', after='after_end')
-        self.machine.add_transition(trigger=StateTransitions.AFK_START.name,   source=State.WORKING.name, dest=State.AFK.name,     after='start')
-        self.machine.add_transition(trigger=StateTransitions.RECOVER.name,     source=State.AFK.name,     dest=State.WORKING.name, before='before_end', after='after_end')
+        self.machine.add_transition(trigger=StateTransitions.WORK_START.name,        source=State.HOME.name,    dest=State.WORKING.name, after='start')
+        self.machine.add_transition(trigger=StateTransitions.REMOTE_WORK_START.name, source=State.HOME.name,    dest=State.WORKING.name, after='start')
+        self.machine.add_transition(trigger=StateTransitions.WORK_END.name,          source=State.WORKING.name, dest=State.HOME.name,    before='before_end', after='after_end')
+        self.machine.add_transition(trigger=StateTransitions.BREAK_START.name,       source=State.WORKING.name, dest=State.BREAK.name,   after='start')
+        self.machine.add_transition(trigger=StateTransitions.RECOVER.name,           source=State.BREAK.name,   dest=State.WORKING.name, before='before_end', after='after_end')
+        self.machine.add_transition(trigger=StateTransitions.AFK_START.name,         source=State.WORKING.name, dest=State.AFK.name,     after='start')
+        self.machine.add_transition(trigger=StateTransitions.RECOVER.name,           source=State.AFK.name,     dest=State.WORKING.name, before='before_end', after='after_end')
 
     def start(self):
         payload = "{year}, {month}, {day}, {hms}, {state}, start, {span}, {new_state}, {timestamp}".format(
@@ -168,19 +176,20 @@ def handle(event, context):
     text = body.get('text', [''])[0]
     try:
         g = REGEX.match(text).groups()
+        method = next(StateTransitions(index) for index, m in enumerate(g) if m is not None)
     except Exception as e:
         return { 'statusCode': 200, 'body': json.dumps({'text': choice(UNDEFINED_ACTION_TEXT) }) }
-    else:
-        method = next(StateTransitions(index) for index, m in enumerate(g) if m is not None)
 
     timecard = WorkingStateMachine(timestamp)
     try:
         timecard.trigger(method.name)
         timecard.broadcast(CONFIGS[method.name])
-    except Exception as e:
-        return { 'statusCode': 200, 'body': json.dumps({'text': choice(ILLEGAL_ACTION_TEXT) }) }
-    else:
         return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] +\
-        (f"""
-```{timecard.get_summary()}```
-```{timecard.get_csv()}```""" if timecard.state == State.HOME.name else "")}) }
+            (f"\n```{timecard.get_summary()}```\n```{timecard.get_csv()}```" if timecard.state == State.HOME.name else "") }) }
+    except Exception as e:
+        try:
+            g = BROADCAST_REGEX.match(text).groups()
+            timecard.broadcast(g[0])
+            return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] }) }
+        except:
+            return { 'statusCode': 200, 'body': json.dumps({'text': choice(ILLEGAL_ACTION_TEXT) }) }
