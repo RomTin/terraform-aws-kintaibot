@@ -35,6 +35,7 @@ RESPONSES = {
     'RECOVER': "${recover_res}",
     'BREAK_START': "${break_start_res}",
     'AFK_START': "${afk_start_res}",
+    'BROADCAST': "${broadcast_res}",
     'CANCEL': "${cancel_res}",
 }
 UNDEFINED_ACTION_TEXT = ${undef_action_text}
@@ -71,17 +72,20 @@ class WorkingStateMachine:
             State.AFK.name: list()
         } # work, break, afkのタイムスタンプを [start, end, start, end...] の順で連続して保持する
         self.timecard_body = list()
+        current_status = State.HOME.name
         try:
-            self.timecard_body = self.timecard_obj.get()['Body']
-        except Exception as e:
-            current_status = State.HOME.name
-        else:
-            self.timecard_body = self.timecard_body.read().decode('utf-8').split('\n')
+            self.timecard_body = self.timecard_obj.get()['Body'].read().decode('utf-8').split('\n')
             for line in self.timecard_body:
                 line = line.split(', ')
-                self.total_time[line[4]].append(line[8])
-                current_status = line[7] # latest state
-        if len(self.total_time[State.WORKING.name]) % 2: # [start, end, ..., start] の場合に、endを今のタイムスタンプで補完する
+                if len(line) == 9:
+                    self.total_time[line[4]].append(line[8])
+                    current_status = line[7] # latest state
+                else:
+                    self.timecard_body = list()
+                    break
+        except:
+            pass
+        if len(self.total_time[State.WORKING.name]) % 2:
             self.total_time[State.WORKING.name].append(self.timestamp)
         if len(self.total_time[State.BREAK.name]) % 2:
             self.total_time[State.BREAK.name].append(self.timestamp)
@@ -131,9 +135,14 @@ class WorkingStateMachine:
         return True
 
     def rollback(self):
-        self.timecard_body = self.timecard_body[:-1]
-        self.timecard_obj.put(Body=('\n').join(self.timecard_body).encode())
-        return True
+        if len(self.timecard_body) == 0:
+            raise Exception("Failed to rollback due to empty log.")
+        try:
+            self.timecard_body = self.timecard_body[:-1]
+            self.timecard_obj.put(Body=('\n').join(self.timecard_body).encode())
+            return True
+        except Exception as e:
+            raise e
 
     def convert_time(seconds):
         [h, m, s] = [int(t) for t in str(timedelta(seconds=int(seconds))).split(':')]
