@@ -198,6 +198,8 @@ def handle(event, context):
 
     timecard = WorkingStateMachine(timestamp)
     try:
+        if BROADCAST_REGEX.match(text) is not None:
+            raise Exception()
         timecard.trigger(method.name)
         timecard.broadcast(CONFIGS[method.name])
         return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] +\
