@@ -16,26 +16,26 @@ USER_ID = "${user_id}"
 DESTINATIONS = ${destinations}
 BUCKET_NAME = "${bucket_name}"
 
-REGEX = re.compile(".*(${work_start_words}).*|.*(${remote_work_start_words}).*|.*(${work_end_words}).*|.*(${recover_words}).*|.*(${break_start_words}).*|.*(${afk_start_words}).*|.*(${broadcast_words}).*|.*(${cancel_words}).*")
+REGEX = re.compile(".*(${broadcast_words}).*|.*(${work_start_words}).*|.*(${remote_work_start_words}).*|.*(${work_end_words}).*|.*(${recover_words}).*|.*(${break_start_words}).*|.*(${afk_start_words}).*|.*(${cancel_words}).*")
 BROADCAST_REGEX = re.compile(".*`(.*)`.*")
 CONFIGS = {
+    'BROADCAST': "${broadcast_text}",
     'WORK_START': "${work_start_text}",
     'REMOTE_WORK_START': "${remote_work_start_text}",
     'WORK_END': "${work_end_text}",
     'RECOVER': "${recover_text}",
     'BREAK_START': "${break_start_text}",
     'AFK_START': "${afk_start_text}",
-    'BROADCAST': "${broadcast_text}",
     'CANCEL': "${cancel_text}",
 }
 RESPONSES = {
+    'BROADCAST': "${broadcast_res}",
     'WORK_START': "${work_start_res}",
     'REMOTE_WORK_START': "${remote_work_start_res}",
     'WORK_END': "${work_end_res}",
     'RECOVER': "${recover_res}",
     'BREAK_START': "${break_start_res}",
     'AFK_START': "${afk_start_res}",
-    'BROADCAST': "${broadcast_res}",
     'CANCEL': "${cancel_res}",
 }
 UNDEFINED_ACTION_TEXT = ${undef_action_text}
@@ -43,13 +43,13 @@ ILLEGAL_ACTION_TEXT = ${illegal_action_text}
 DIFFERENT_USER_TEXT = ${different_user}
 
 class StateTransitions(Enum):
-    WORK_START = 0
-    REMOTE_WORK_START = 1
-    WORK_END = 2
-    RECOVER = 3
-    BREAK_START = 4
-    AFK_START = 5
-    BROADCAST = 6
+    BROADCAST = 0
+    WORK_START = 1
+    REMOTE_WORK_START = 2
+    WORK_END = 3
+    RECOVER = 4
+    BREAK_START = 5
+    AFK_START = 6
     CANCEL = 7
 
 class State(Enum):
@@ -190,31 +190,36 @@ def handle(event, context):
 
     timestamp = int(body.get('timestamp', [''])[0].split('.')[0])
     text = body.get('text', [''])[0]
+    timecard = WorkingStateMachine(timestamp)
+
+    # 本文をパースして実行するアクションを取得する。取得不可能な場合はUNDEFを返す
     try:
         g = REGEX.match(text).groups()
         method = next(StateTransitions(index) for index, m in enumerate(g) if m is not None)
     except:
         return { 'statusCode': 200, 'body': json.dumps({'text': choice(UNDEFINED_ACTION_TEXT) }) }
 
-    timecard = WorkingStateMachine(timestamp)
+    # BROADCAST以外の正しいアクションを受け取っているので実行する。triggerに失敗した場合はCANCEL or 不正な遷移なのでそれぞれ処理する
     try:
-        if BROADCAST_REGEX.match(text) is not None:
-            raise Exception()
         timecard.trigger(method.name)
         timecard.broadcast(CONFIGS[method.name])
         return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] +\
             (f"\n```{timecard.get_summary()}```\n```{timecard.get_csv()}```" if timecard.state == State.HOME.name else "") }) }
     except:
-        if method.name == StateTransitions.CANCEL.name:
+        # 本文にバッククォートが含まれる場合、アクションがBROADCASTならそれを実行し、それ以外ならUNDEFを返す
+        if method.name == StateTransitions.BROADCAST.name:
+            try:
+                b = BROADCAST_REGEX.match(text).groups()[0]
+                timecard.broadcast(b)
+                return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] }) }
+            except:
+                pass
+        # CSVを一つ巻き戻して取り消し可能なら取り消す
+        elif method.name == StateTransitions.CANCEL.name:
             try:
                 timecard.rollback()
                 timecard.broadcast(CONFIGS[method.name])
                 return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] }) }
             except:
                 pass
-        try:
-            g = BROADCAST_REGEX.match(text).groups()
-            timecard.broadcast(g[0])
-            return { 'statusCode': 200, 'body': json.dumps({'text': RESPONSES[method.name] }) }
-        except:
-            return { 'statusCode': 200, 'body': json.dumps({'text': choice(ILLEGAL_ACTION_TEXT) }) }
+        return { 'statusCode': 200, 'body': json.dumps({'text': choice(ILLEGAL_ACTION_TEXT) }) }
