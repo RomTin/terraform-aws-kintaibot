@@ -8,13 +8,13 @@ variable "id" {
 Slack関連設定
 ==================== */
 
-variable "slack_token" {
-  type        = string
+variable "slack_tokens" {
+  type        = list
   description = "SlackAppのOutgoingWebhookが発行するSlackToken"
 }
 
-variable "user_id" {
-  type        = string
+variable "user_ids" {
+  type        = list
   description = "自身のSlack User ID"
 }
 

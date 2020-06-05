@@ -4,8 +4,8 @@ Lambda function
 data "template_file" "bot-source" {
   template = file("${path.module}/aws_lambda_src/function/src/main.py")
   vars = {
-    slack_token             = var.slack_token
-    user_id                 = var.user_id
+    slack_tokens            = jsonencode(var.slack_tokens)
+    user_ids                = jsonencode(var.user_ids)
     destinations            = jsonencode(var.destinations)
     bucket_name             = aws_s3_bucket.timecards.bucket
     work_start_words        = join("|", var.work_start_words)

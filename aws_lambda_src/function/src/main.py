@@ -11,8 +11,8 @@ from random import choice
 
 s3 = boto3.resource("s3")
 JST = timezone(timedelta(hours=+9), 'JST')
-SLACK_TOKEN = "${slack_token}"
-USER_ID = "${user_id}"
+SLACK_TOKENS = ${slack_tokens}
+USER_IDS = ${user_ids}
 DESTINATIONS = ${destinations}
 BUCKET_NAME = "${bucket_name}"
 
@@ -183,9 +183,9 @@ class WorkingStateMachine:
 
 def handle(event, context):
     body = parse_qs(event.get('body') or '')
-    if body.get('token', [''])[0] != SLACK_TOKEN:
+    if body.get('token', [''])[0] not in SLACK_TOKENS:
         return { 'statusCode': 400 }
-    if body.get('user_id', [''])[0] != USER_ID:
+    if body.get('user_id', [''])[0] not in USER_IDS:
         return { 'statusCode': 200, 'body': json.dumps({'text': choice(DIFFERENT_USER_TEXT + UNDEFINED_ACTION_TEXT) }) }
 
     timestamp = int(body.get('timestamp', [''])[0].split('.')[0])
