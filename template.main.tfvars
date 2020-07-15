@@ -1,7 +1,7 @@
 id = ""
 /* Slack関連設定 */
-slack_token  = ""
-user_id      = ""
+slack_token  = []
+user_id      = []
 destinations = []
 /* 設定 */
 undef_action_text   = []
