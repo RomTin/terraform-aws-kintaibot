@@ -291,16 +291,6 @@ variable "broadcast_words" {
 DESCRIPTION
 }
 
-variable "broadcast_text" {
-  type        = string
-  description = <<DESCRIPTION
-勤怠用Slackチャンネルへのブロードキャストの報告文面
-```
-※使用しません。
-```
-DESCRIPTION
-}
-
 variable "broadcast_res" {
   type        = string
   description = <<DESCRIPTION

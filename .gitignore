@@ -1,6 +1,3 @@
 .terraform
 terraform.tfstate*
-*.zip
-__pycache__
-.idea
-main.tfvars
+main.zip

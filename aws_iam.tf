@@ -19,7 +19,6 @@ data "aws_iam_policy_document" "bot-assume-policy-doc" {
   statement {
     actions = ["sts:AssumeRole"]
     effect  = "Allow"
-
     principals {
       type        = "Service"
       identifiers = ["lambda.amazonaws.com"]
@@ -29,14 +28,12 @@ data "aws_iam_policy_document" "bot-assume-policy-doc" {
 
 data "aws_iam_policy_document" "bot-iam-policy-doc" {
   version = "2012-10-17"
-
   statement {
     sid       = "${var.id}S3"
     effect    = "Allow"
     resources = [aws_s3_bucket.timecards.arn, "${aws_s3_bucket.timecards.arn}/*"]
     actions   = ["s3:ListBucket", "s3:*Object"]
   }
-
   statement {
     sid       = "${var.id}CloudWatch"
     effect    = "Allow"
