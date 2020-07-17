@@ -1,8 +1,8 @@
 id = ""
 
 /* Slack関連設定 */
-slack_token  = []
-user_id      = []
+slack_tokens = []
+user_ids     = []
 destinations = []
 
 /* 設定 */
