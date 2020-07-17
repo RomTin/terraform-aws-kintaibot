@@ -3,8 +3,9 @@
 ==================== */
 
 resource "aws_s3_bucket" "timecards" {
-  bucket = "${var.id}-timecards"
-  acl    = "private"
+  bucket        = "${var.id}-timecards"
+  acl           = "private"
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_public_access_block" "timecards-acl" {
